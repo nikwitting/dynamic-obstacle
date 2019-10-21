@@ -1,4 +1,5 @@
 <launch>
 
-<include file="$(find my_lanefollowing)/launch/lane_following.launch"/>
+<include file="$(find my_lanefollowing)/launch/lane_following.launch">
+</include>
 </launch>

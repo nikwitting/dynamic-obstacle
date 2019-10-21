@@ -39,7 +39,7 @@ class VehicleDetectionNode(object):
 
         self.lock = mutex()
         self.sub_image = rospy.Subscriber("~image", CompressedImage,
-                                          self.processImage, buff_size=921600, 
+                                          self.processImage, buff_size=921600,
                                           queue_size=1)
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped,
                                            self.cbSwitch, queue_size=1)
@@ -78,20 +78,20 @@ class VehicleDetectionNode(object):
                                                     self.publish_circles))
 
     def cbSwitch(self, switch_msg):
-        self.active = switch_msg.data
+        self.active = True #switch_msg.data, changed pw!
 
     def processImage(self, image_msg):
-        
+
         if not self.active:
             return
-        
+
         now = rospy.Time.now()
         if now - self.last_stamp < self.publish_duration:
             return
         else:
             self.last_stamp = now
-        
-        
+
+
         vehicle_detected_msg_out = BoolStamped()
         vehicle_corners_msg_out = VehicleCorners()
         try:
@@ -109,7 +109,7 @@ class VehicleDetectionNode(object):
                                                     self.circlepattern_dims, flags=cv2.CALIB_CB_SYMMETRIC_GRID,
                                                     blobDetector=simple_blob_detector)
 
-        # print(corners)
+        print("corn",corners)
 
         vehicle_detected_msg_out.data = detection
         self.pub_detection.publish(vehicle_detected_msg_out)
