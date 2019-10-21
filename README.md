@@ -1,5 +1,5 @@
-Implement perception part in package vehicle_detection/src/vehicle_detection_node.py
-Implement control part in package vehicle_detection/src/vehicle_avoidance_control_node.py
+#Implement perception part in package vehicle_detection/src/vehicle_detection_node.py, also look at vehicle_filter_node.py
+#Implement control part in package vehicle_detection/src/vehicle_avoidance_control_node.py
 
 
 
