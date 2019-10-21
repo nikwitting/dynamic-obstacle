@@ -47,6 +47,6 @@ ENV LAUNCHFILE "${REPO_PATH}/launch.sh"
 CMD ["bash", "-c", "${LAUNCHFILE}"]
 # <== Do not change this code
 # <==================================================
-
+ENV DUCKIETOWN_ROOT="${SOURCE_DIR}"
 # maintainer
 LABEL maintainer="<YOUR_FULL_NAME> (<YOUR_EMAIL_ADDRESS>)"

@@ -1,0 +1,11 @@
+<package>
+  <name>my_lanefollowing</name>
+  <version>0.1.0</version>
+  <description>
+  This package is a test for RH3.
+  </description>
+  <maintainer email="pwulkop@ethz.ch">Paula_Wulkop</maintainer>
+  <license>None</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
