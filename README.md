@@ -1,3 +1,19 @@
+## HOW TO RUN
+1. dts devel build -f --arch arm32v7 -H daringduck.local in the dynamic-obstacle folder
+
+2. In 4 Terminals run the following:
+
+docker -H daringduck.local run -it --privileged --rm -v /data:/data --net=host duckietown/dt-duckiebot-interface:daffy
+
+docker -H daringduck.local run --privileged -it --rm --net host duckietown/dt-car-interface:daffy
+
+dts duckiebot keyboard_control daringduck --base_image duckietown/dt-core:daffy-amd64
+
+docker -H daringduck.local run -it --rm --net=host -v /data:/data --privileged duckietown/dynamic-obstacle:lanefollowing-arm32v7
+
+3. press 'a' in the keyboard terminal to start lane following and 's' to stop. 
+
+
 ## Implement perception part in package vehicle_detection/src/vehicle_detection_node.py, also look at vehicle_filter_node.py
 
 ## Implement control part in package vehicle_detection/src/vehicle_avoidance_control_node.py
