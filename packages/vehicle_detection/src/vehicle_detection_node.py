@@ -22,6 +22,7 @@ class VehicleDetectionNode(object):
         self.node_name = rospy.get_name()
         self.bridge = CvBridge()
         self.active = True
+        self.backbumper = False #pw
         self.config = self.setupParam("~config", "baseline")
         self.cali_file_name = self.setupParam("~cali_file_name", "default")
         self.publish_freq = self.setupParam("~publish_freq", 2.0)
@@ -101,29 +102,92 @@ class VehicleDetectionNode(object):
             print e
 
         start = rospy.Time.now()
-        params = cv2.SimpleBlobDetector_Params()
-        params.minArea = self.blobdetector_min_area
-        params.minDistBetweenBlobs = self.blobdetector_min_dist_between_blobs
-        simple_blob_detector = cv2.SimpleBlobDetector_create(params)
-        (detection, corners) = cv2.findCirclesGrid(image_cv,
-                                                    self.circlepattern_dims, flags=cv2.CALIB_CB_SYMMETRIC_GRID,
-                                                    blobDetector=simple_blob_detector)
+        if self.backbumper:
+            params = cv2.SimpleBlobDetector_Params()
+            params.minArea = self.blobdetector_min_area
+            params.minDistBetweenBlobs = self.blobdetector_min_dist_between_blobs
+            simple_blob_detector = cv2.SimpleBlobDetector_create(params)
+            (detection, corners) = cv2.findCirclesGrid(image_cv,
+                                                        self.circlepattern_dims, flags=cv2.CALIB_CB_SYMMETRIC_GRID,
+                                                        blobDetector=simple_blob_detector)
+            if detection:
+                # print(corners)
+                points_list = []
+                for point in corners:
+                    corner = Point32()
+                    # print(point[0])
+                    corner.x = point[0, 0]
+                    # print(point[0,1])
+                    corner.y = point[0, 1]
+                    corner.z = 0
+                    points_list.append(corner)
 
-        print("corn",corners)
 
+        else: #LED detection
+            cv_image1 = cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY)
+            cv_image1 = cv_image1[cv_image1.shape[0]/4:cv_image1.shape[0]/4*3]
+
+
+    		ret,cv_image_thresh = cv2.threshold(cv_image1,220,255,cv2.THRESH_BINARY)
+
+    		# Set up the detector with default parameters.
+    		params = cv2.SimpleBlobDetector_Params()
+    		params.minThreshold = 10;    # the graylevel of images
+    		params.maxThreshold = 200;
+
+    		params.filterByColor = True
+    		params.blobColor = 255
+
+    		# Filter by Area
+    		params.filterByArea = False
+    		params.minArea = 10000
+    		params.filterByInertia = False
+    		params.filterByConvexity = False
+    		params.filterByCircularity = True
+    		params.minCircularity = 0.1
+    		detector = cv2.SimpleBlobDetector_create(params)
+
+    		# Detect blobs.
+    		keypoints = detector.detect(cv_image_thresh)
+    		# Draw detected blobs as red circles.
+    		# cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
+    		cv_image_thresh = cv2.drawKeypoints(cv_image_thresh, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    		cv_image1 = cv2.drawKeypoints(cv_image1, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+    		#print(keypoints[0].pt)
+    		x1=0
+    		x2=0
+    		y1=0
+    		y2=0
+    		carfound=0
+    		for key1 in keypoints:
+    			for key2 in keypoints:
+    				if key1!=key2:
+    					if abs((key1.size-key2.size)/key1.size)<0.4: #same size keys maybe change parameter
+    						if abs((key1.pt[1]-key2.pt[1]))<key1.size/1: #same y coordinate maybe change parameter
+    							dist=abs((key1.pt[0]-key2.pt[0]))
+    							#print(dist)
+    							#print(key1.size*4+key1.size)
+    							if dist>key1.size*4+key1.size and dist <key1.size*10+key1.size: #roughly right distance compared to light size
+                                    points_list = []
+    								#print(dist/key1.size)
+                                    corner.x = key1.pt[0]
+                                    corner.y = key1.pt[1]
+                                    corner.z = 0
+                                    points_list.append(corner)
+                                    corner.x = key2.pt[0]
+                                    corner.y = key2.pt[1]
+                                    corner.z = 0
+                                    points_list.append(corner) #pw, make this nice with loop!
+
+    								carfound=1
+                                    detection = carfound #replace carfound, but is detection actually a boolean?
+
+
+        print("points list",points_list)
         vehicle_detected_msg_out.data = detection
         self.pub_detection.publish(vehicle_detected_msg_out)
         if detection:
-            # print(corners)
-            points_list = []
-            for point in corners:
-                corner = Point32()
-                # print(point[0])
-                corner.x = point[0, 0]
-                # print(point[0,1])
-                corner.y = point[0, 1]
-                corner.z = 0
-                points_list.append(corner)
             vehicle_corners_msg_out.header.stamp = rospy.Time.now()
             vehicle_corners_msg_out.corners = points_list
             vehicle_corners_msg_out.detection.data = detection

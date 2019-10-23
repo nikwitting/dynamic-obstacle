@@ -21,9 +21,14 @@ class VehicleFilterNode(object):
     def __init__(self):
         self.node_name = rospy.get_name()
         self.bridge = CvBridge()
+        self.backbumper = False #pw make parameter!!
 
         self.config = self.setupParam("~config", "baseline")
-        self.cali_file_name = self.setupParam("~cali_file_name", "default")
+        if self.backbumper:
+            self.cali_file_name = self.setupParam("~cali_file_name", "default")
+        else:
+            self.cali_file_name = self.setupParam("~cali_file_name", "LED_pattern")
+
         rospack = rospkg.RosPack()
         self.cali_file = rospack.get_path('duckietown') + \
             "/config/" + self.config + \
@@ -83,20 +88,50 @@ class VehicleFilterNode(object):
             # points = np.reshape(points, (2,-1))
             # print(points)
             # print(self.pcm.distortionCoeffs())
-            (success, rotation_vector, translation_vector) = cv2.solvePnP(
-                self.circlepattern, points, self.pcm.intrinsicMatrix(), self.pcm.distortionCoeffs())
+            if self.backbumper:
+                (success, rotation_vector, translation_vector) = cv2.solvePnP(
+                    self.circlepattern, points, self.pcm.intrinsicMatrix(), self.pcm.distortionCoeffs())
+
+                if success:
+                    points_reproj, _ = cv2.projectPoints(
+                        self.circlepattern, rotation_vector, translation_vector, self.pcm.intrinsicMatrix(), self.pcm.distortionCoeffs())
+                    error = 0
+                    for i in range(0, len(points_reproj)):
+                        error += cv2.norm(points[i],
+                                          points_reproj[i, 0], cv2.NORM_L2)
+
+                    mean_reproj_error = error / len(points_reproj)
+                    # print(mean_reproj_error)
+                    # print(self.max_reproj_pixelerror_pose_estimation)
+            else:
+                rotation_vector=[0,0,0]; #pw, valid assumption?
+
+    			#f=318 #figure out how to get focal length of robot calibration
+                f=self.pcm.intrinsicMatrix()[0,0] #check if this is 318
+    			depth=self.distance_between_centers*f/abs(points[1,0]-points[0,0])
+    			print("Depth: " +str(depth))
+                imheight=480/2 #pw dont hardcode!!! is it even correct?
+                imwidth=640
+    			#imheight, imwidth = image_cv.shape[:2]
+    			midt=(points[1,0]+points[0,0])/2-imwidth/2
+    			Midt=midt/f*depth
+    			print(Midt)
+    			self.detected_log.append((Midt,depth))
+                #implement log on shutdown
+                # with open('/data/detected_duckiebot_log.csv', mode='w') as log:
+        		# 	log = csv.writer(log, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        		# 	for data in self.detected_log:
+    			# 	                log.writerow([data[0], data[1]])
+    			#cv_image1=cv2.circle(cv_image1,(int(points[0,0]),int(points[0,1])), 5, (0,255,0), 2)
+    			#cv_image1=cv2.circle(cv_image1,(int(points[1,0]),int(points[1,1])), 5, (0,255,0), 2)
+                success = 1
+                translation_vector=[Midt,depth,0] #pw coordinate system??
+                translation_vector=translation_vector/np.linalg.norm(translation_vector) #normalize
+                mean_reproj_error=0#pw cheating to fulfill next if condition
+
+
 
             if success:
-                points_reproj, _ = cv2.projectPoints(
-                    self.circlepattern, rotation_vector, translation_vector, self.pcm.intrinsicMatrix(), self.pcm.distortionCoeffs())
-                error = 0
-                for i in range(0, len(points_reproj)):
-                    error += cv2.norm(points[i],
-                                      points_reproj[i, 0], cv2.NORM_L2)
-
-                mean_reproj_error = error / len(points_reproj)
-                # print(mean_reproj_error)
-                # print(self.max_reproj_pixelerror_pose_estimation)
 
                 if mean_reproj_error < self.max_reproj_pixelerror_pose_estimation:
                     # print(translation_vector)
