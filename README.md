@@ -9,9 +9,10 @@ docker -H daringduck.local run --privileged -it --rm --net host duckietown/dt-ca
 
 dts duckiebot keyboard_control daringduck --base_image duckietown/dt-core:daffy-amd64
 
-docker -H daringduck.local run -it --rm --net=host -v /data:/data --privileged duckietown/dynamic-obstacle:lanefollowing-arm32v7
+docker -H daringduck.local run -it --rm --net=host -v /data:/data -e OFFSET=0 --privileged duckietown/dynamic-obstacle:lanefollowing-arm32v7
 
-3. press 'a' in the keyboard terminal to start lane following and 's' to stop. 
+(OFFSET 0: no offset, 1: left lane, 2, middle of the road, default=0)
+3. press 'a' in the keyboard terminal to start lane following and 's' to stop.
 
 
 ## Implement perception part in package vehicle_detection/src/vehicle_detection_node.py, also look at vehicle_filter_node.py
